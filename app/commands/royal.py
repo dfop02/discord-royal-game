@@ -1,25 +1,50 @@
 import asyncio
 import discord
 import random
+import requests
+import io
+import os
+import cv2
 import re
+import numpy as np
 from datetime import datetime, timedelta
 from discord.ext import commands
 from app.utils import *
-from app.music.player import YTDLSource
+from app.music.player import YTDLSource, extract_video_id_by_url
 
 @commands.command()
 async def start_royal(ctx):
     global bot
-    game_json = {'players': {}, 'player_ids': {}, 'settings': {}}
-    await ctx.send(f"{ctx.author}, welcome to Royal Game!\nWhat will be the theme of game?")
+    # game_json = {'players': {}, 'player_ids': {}, 'settings': {}}
+    # await ctx.send(f"{ctx.author}, welcome to Royal Game!\nWhat will be the theme of game?")
 
-    def check(msg):
-        return msg.author == ctx.author and msg.channel == ctx.channel
+    # def check(msg):
+    #     return msg.author == ctx.author and msg.channel == ctx.channel
 
-    game_json.update(await game_theme(bot, ctx, check=check))
-    game_json['settings'].update(await game_players(bot, ctx, check=check))
-    game_json['settings'].update(await game_settings(bot, ctx))
-    game_json = await link_phase(bot, ctx, game_json)
+    # game_json.update(await game_theme(bot, ctx, check=check))
+    # game_json['settings'].update(await game_players(bot, ctx, check=check))
+    # game_json['settings'].update(await game_settings(bot, ctx))
+    # game_json = await link_phase(bot, ctx, game_json)
+
+    game_json = {
+        'players': {
+            'dfop': 'https://www.youtube.com/watch?v=5yb2N3pnztU',
+            'luky': 'https://www.youtube.com/watch?v=gcgKUcJKxIs',
+            'zero': 'https://www.youtube.com/watch?v=gWCnKoEgfP0',
+            'kingi': 'https://www.youtube.com/watch?v=LnATgmx7tGo'
+        },
+        'player_ids': {
+            'dfop': '176132496390488065',
+            'luky': '176132496390488335',
+            'zero': '176132496390488000',
+            'kingi': '176132496390488999'
+        },
+        'settings': {
+            'limit_players': 2,
+            'voice_channel_id': '176160310565011457',
+            'start_duration': 1
+        }
+    }
 
     await start_game(bot, ctx, game_json)
 
@@ -102,7 +127,7 @@ async def link_phase(bot, ctx, game_json):
         limit_players = game_json['settings']['limit_players']
         reach_time_limit = datetime.now() > endTime
         reach_player_limit = limit_players and (len(game_json['players'].keys()) >= limit_players)
-        if reach_time_limit
+        if reach_time_limit:
             game_json['settings']['limit_players'] = len(game_json['players'].keys())
             break
         elif reach_player_limit:
@@ -157,13 +182,15 @@ async def run_current_bracket(bot, ctx, voice, brackets, game_json):
             future_bracket.append(bracket[0])
             continue
 
+        await print_current_match(ctx, bracket)
+
         for username, video_url in bracket:
-            playing_msg = await ctx.send(f"{react[react_index]} Playing {username}'s video... {video_url}")
+            playing_msg = await ctx.send(f"{react[react_index]} Playing...")
             await playing_msg.add_reaction('⏭️')
             await play(bot, voice, video_url, game_json)
             react_index += 1
 
-        response = await ctx.send(f"Which was better? You have {str(select_timeout)} seconds to decide, {react[0]} or {react[1]}?")
+        response = await ctx.send(f'Which was better? You have {str(select_timeout)} seconds to decide, {react[0]} or {react[1]}?')
 
         for emoji in react:
             await response.add_reaction(emoji)
@@ -171,25 +198,24 @@ async def run_current_bracket(bot, ctx, voice, brackets, game_json):
         await asyncio.sleep(select_timeout)
 
         msg = await ctx.channel.fetch_message(response.id)
+
+        choice_a = next((reaction.count-1 for reaction in msg.reactions if reaction.emoji == react[0]), 0)
+        choice_b = next((reaction.count-1 for reaction in msg.reactions if reaction.emoji == react[1]), 0)
         highest_reaction = ''
-        highest_reaction_number = 0
-        draw = False
 
-        for reaction in msg.reactions:
-            if (reaction.count-1) == highest_reaction_number:
-                draw = True
-                break
-
-            if (reaction.count-1) > highest_reaction_number:
-                highest_reaction = reaction.emoji
-                highest_reaction_count = reaction.count-1
-
-        if draw:
-            future_bracket.append(bracket[random.randint(0, 1)])
-        elif highest_reaction == "🇦":
+        if choice_a == choice_b:
+            random_choice = random.randint(0, 1)
+            highest_reaction = react[random_choice]
+            future_bracket.append(bracket[random_choice])
+        elif choice_a > choice_b:
+            highest_reaction = react[0]
             future_bracket.append(bracket[0])
         else:
+            highest_reaction = react[1]
             future_bracket.append(bracket[1])
+
+        if len(brackets) > 1:
+            await ctx.send(f"{highest_reaction} wins {'by random' if choice_a == choice_b else ''}\n**{'#'*50}**")
 
     return (generate_tournament_brackets(future_bracket), len(future_bracket) != 1)
 
@@ -222,15 +248,54 @@ async def play(bot, voice, url, game_json):
     player = await YTDLSource.from_url(url, loop=bot.loop, stream=True)
     voice.play(player, after=lambda e: print(f'Player error: {e}') if e else None)
 
+    def emoji_check(reaction, user):
+        return str(reaction.emoji) == '⏭️'
+
     while voice.is_playing():
         try:
-            reaction, user = await bot.wait_for('reaction_add', timeout=player.duration, check=lambda reaction, user: str(reaction.emoji) == '⏭️')
+            reaction, user = await bot.wait_for('reaction_add', timeout=player.duration, check=emoji_check)
             if reaction.count-1 >= game_json['settings']['limit_players']/2:
                 voice.pause()
         except asyncio.TimeoutError:
             pass
 
         await asyncio.sleep(1)
+
+async def print_current_match(ctx, bracket):
+    await ctx.send(f'Match => {bracket[0][0]} VS {bracket[1][0]}')
+
+    img1 = get_thumbnail(bracket[0][1])
+    img2 = get_thumbnail(bracket[1][1])
+    img_merged = cv2.hconcat([img1, img2])
+
+    text = 'VS'
+    font = cv2.FONT_HERSHEY_SIMPLEX
+    font_size = 1.5
+    font_stroke = 3
+
+    text_width, text_height = cv2.getTextSize(text, font, font_size, font_stroke+2)[0]
+    position = ((int) (img_merged.shape[1]/2 - text_width/2), (int) (img_merged.shape[0]/2 + text_height/2))
+    cv2.putText(img_merged,text,position,font,font_size,(0,0,0),font_stroke+2)
+    cv2.putText(img_merged,text,position,font,font_size,(195,136,59),font_stroke)
+
+    font_size = 1
+
+    cv2.rectangle(img_merged, (0, img_merged.shape[0]-50), (50, img_merged.shape[0]), (195,136,59), -1)
+    cv2.putText(img_merged,'A',(15, img_merged.shape[0]-15),font,font_size,(255, 255, 255),font_stroke)
+
+    cv2.rectangle(img_merged, (img_merged.shape[1]-50, img_merged.shape[0]-50), (img_merged.shape[1], img_merged.shape[0]), (195,136,59), -1)
+    cv2.putText(img_merged,'B',(img_merged.shape[1]-35, img_merged.shape[0]-15),font,font_size,(255, 255, 255),font_stroke)
+
+    # JPEG quality, 0 - 100
+    jpeg_quality = 95
+    _, final_img = cv2.imencode('.jpeg', img_merged, [cv2.IMWRITE_JPEG_QUALITY, jpeg_quality])
+    await ctx.send(file=discord.File(io.BytesIO(final_img), 'imgvsimg.jpg'))
+
+def get_thumbnail(url, readFlag=cv2.IMREAD_COLOR):
+    resp = requests.get(f'http://img.youtube.com/vi/{extract_video_id_by_url(url)}/0.jpg')
+    image = np.asarray(bytearray(resp.content), dtype=np.uint8)
+    image = cv2.imdecode(image, readFlag)
+    return image
 
 async def clear_last_msg(ctx, n_msgs=1):
     await ctx.channel.purge(limit=n_msgs, check=lambda msg: not msg.pinned)

@@ -1,6 +1,10 @@
 import asyncio
 import discord
+from pytube import extract
 import youtube_dl
+
+# Suppress noise about console usage from errors
+youtube_dl.utils.bug_reports_message = lambda: ''
 
 ytdl_format_options = {
     'format': 'bestaudio/best',
@@ -42,3 +46,6 @@ class YTDLSource(discord.PCMVolumeTransformer):
 
         filename = data['url'] if stream else ytdl.prepare_filename(data)
         return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
+
+def extract_video_id_by_url(url):
+    return extract.video_id(url)
