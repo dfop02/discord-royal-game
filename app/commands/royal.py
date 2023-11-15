@@ -15,36 +15,16 @@ from app.music.player import YTDLSource, extract_video_id_by_url
 @commands.command()
 async def start_royal(ctx):
     global bot
-    # game_json = {'players': {}, 'player_ids': {}, 'settings': {}}
-    # await ctx.send(f"{ctx.author}, welcome to Royal Game!\nWhat will be the theme of game?")
+    game_json = {'players': {}, 'player_ids': {}, 'settings': {}}
+    await ctx.send(f"{ctx.author}, welcome to Royal Game!\nWhat will be the theme of game?")
 
-    # def check(msg):
-    #     return msg.author == ctx.author and msg.channel == ctx.channel
+    def check(msg):
+        return msg.author == ctx.author and msg.channel == ctx.channel
 
-    # game_json.update(await game_theme(bot, ctx, check=check))
-    # game_json['settings'].update(await game_players(bot, ctx, check=check))
-    # game_json['settings'].update(await game_settings(bot, ctx))
-    # game_json = await link_phase(bot, ctx, game_json)
-
-    game_json = {
-        'players': {
-            'dfop': 'https://www.youtube.com/watch?v=5yb2N3pnztU',
-            'luky': 'https://www.youtube.com/watch?v=gcgKUcJKxIs',
-            'zero': 'https://www.youtube.com/watch?v=gWCnKoEgfP0',
-            'kingi': 'https://www.youtube.com/watch?v=LnATgmx7tGo'
-        },
-        'player_ids': {
-            'dfop': '176132496390488065',
-            'luky': '176132496390488335',
-            'zero': '176132496390488000',
-            'kingi': '176132496390488999'
-        },
-        'settings': {
-            'limit_players': 2,
-            'voice_channel_id': '176160310565011457',
-            'start_duration': 1
-        }
-    }
+    game_json.update(await game_theme(bot, ctx, check=check))
+    game_json['settings'].update(await game_players(bot, ctx, check=check))
+    game_json['settings'].update(await game_settings(bot, ctx))
+    game_json = await link_phase(bot, ctx, game_json)
 
     await start_game(bot, ctx, game_json)
 
