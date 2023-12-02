@@ -1,9 +1,9 @@
 import importlib
 import asyncio
-from os import getenv
 import builtins
-from dotenv import load_dotenv
 import discord
+from dotenv import load_dotenv
+from os import getenv
 from app.commands import __all__ as all_commands
 from discord.ext import commands
 

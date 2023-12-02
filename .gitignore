@@ -146,6 +146,9 @@ dmypy.json
 # mac os
 .DS_Store
 
+# settings
+settings.json
+
 # Pyre type checker
 .pyre/
 

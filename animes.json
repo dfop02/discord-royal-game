@@ -1,0 +1,144 @@
+{
+    "animes": [
+        {
+            "name": "Oshi no Ko",
+            "difficult": "easy",
+            "url": "https://www.youtube.com/watch?v=PgBvV9ofjmA"
+        },
+        {
+            "name": "Jujutsu Kaisen",
+            "difficult": "easy",
+            "url": "https://www.youtube.com/watch?v=5yb2N3pnztU"
+        },
+        {
+            "name": "Bleach",
+            "difficult": "easy",
+            "url": "https://www.youtube.com/watch?v=eIm0dpBjQPg"
+        },
+        {
+            "name": "86",
+            "difficult": "easy",
+            "url": "https://www.youtube.com/watch?v=tA0EEJj4hU0"
+        },
+        {
+            "name": "Fairy tail",
+            "difficult": "easy",
+            "url": "https://www.youtube.com/watch?v=YAi8K_5pHWA"
+        },
+        {
+            "name": "One Piece",
+            "difficult": "easy",
+            "url": "https://www.youtube.com/watch?v=z7QgUzPHkBA"
+        },
+        {
+            "name": "One Piece",
+            "difficult": "easy",
+            "url": "https://www.youtube.com/watch?v=qSbOQPaGEqA"
+        },
+        {
+            "name": "Fullmetal Alchemist: Brotherhood",
+            "difficult": "easy",
+            "url": "https://www.youtube.com/watch?v=1_LJdBw4SZo"
+        },
+        {
+            "name": "Zetsuen no Tempest",
+            "difficult": "hard",
+            "url": "https://www.youtube.com/watch?v=Ckh0B1eLqgI"
+        },
+        {
+            "name": "Naruto",
+            "difficult": "easy",
+            "url": "https://www.youtube.com/watch?v=zVgKnfN9i34"
+        },
+        {
+            "name": "Tokyo Ghoul",
+            "difficult": "easy",
+            "url": "https://www.youtube.com/watch?v=uMeR2W19wT0"
+        },
+        {
+            "name": "Miss Kobayashi's Dragon Maid",
+            "difficult": "medium",
+            "url": "https://www.youtube.com/watch?v=KVV5Hh2RHoA"
+        },
+        {
+            "name": "Bakemonogatari",
+            "difficult": "easy",
+            "url": "https://www.youtube.com/watch?v=jQ6gPyYNgPo"
+        },
+        {
+            "name": "Miss Kobayashi's Dragon Maid",
+            "difficult": "medium",
+            "url": "https://www.youtube.com/watch?v=IuAeQvzx1H4"
+        },
+        {
+            "name": "Mirai Nikki",
+            "difficult": "easy",
+            "url": "https://www.youtube.com/watch?v=I59V9pjEOLI"
+        },
+        {
+            "name": "Noragami",
+            "difficult": "easy",
+            "url": "https://www.youtube.com/watch?v=aZenmeRytEM"
+        },
+        {
+            "name": "Claymore",
+            "difficult": "hard",
+            "url": "https://www.youtube.com/watch?v=dbj9Yjskco0"
+        },
+        {
+            "name": "Gangsta",
+            "difficult": "hard",
+            "url": "https://www.youtube.com/watch?v=cXb7M2DQiEk"
+        },
+        {
+            "name": "The God of High School",
+            "difficult": "medium",
+            "url": "https://www.youtube.com/watch?v=eRJyYfAq2tk"
+        },
+        {
+            "name": "Deadman Wonderland",
+            "difficult": "hard",
+            "url": "https://www.youtube.com/watch?v=_5WvUPHF5f8"
+        },
+        {
+            "name": "Overlord",
+            "difficult": "medium",
+            "url": "https://www.youtube.com/watch?v=vci9YwpFFcA"
+        },
+        {
+            "name": "Overlord",
+            "difficult": "medium",
+            "url": "https://www.youtube.com/watch?v=KOWcj7XKnfQ"
+        },
+        {
+            "name": "Kaguya-sama: Love Is War?",
+            "difficult": "medium",
+            "url": "https://www.youtube.com/watch?v=lTlzDfhPtFA"
+        },
+        {
+            "name": "Dr. Store",
+            "difficult": "easy",
+            "url": "https://www.youtube.com/watch?v=tF4faMbs5oQ"
+        },
+        {
+            "name": "Guilty Crown",
+            "difficult": "medium",
+            "url": "https://www.youtube.com/watch?v=09BjZaf8TFU"
+        },
+        {
+            "name": "Hyouka",
+            "difficult": "hard",
+            "url": "https://www.youtube.com/watch?v=3tvOowLuKxs"
+        },
+        {
+            "name": "Mushoku Tensei",
+            "difficult": "medium",
+            "url": "https://www.youtube.com/watch?v=_NIp8wvNXmM"
+        },
+        {
+            "name": "To Love Ru",
+            "difficult": "medium",
+            "url": "https://www.youtube.com/watch?v=5EpKqiRnCvc"
+        }
+    ]
+}

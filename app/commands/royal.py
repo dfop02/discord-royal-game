@@ -1,21 +1,17 @@
 import asyncio
 import discord
 import random
-import requests
-import io
-import os
-import cv2
 import re
-import numpy as np
 from datetime import datetime, timedelta
 from discord.ext import commands
 from app.utils import *
-from app.music.player import YTDLSource, extract_video_id_by_url
+from app.music.player import YTDLSource
 
 @commands.command()
 async def start_royal(ctx):
     global bot
     game_json = {'players': {}, 'player_ids': {}, 'settings': {}}
+    await clear_last_msg(ctx, n_msgs=100)
     await ctx.send(f"{ctx.author}, welcome to Royal Game!\nWhat will be the theme of game?")
 
     def check(msg):
@@ -23,7 +19,7 @@ async def start_royal(ctx):
 
     game_json.update(await game_theme(bot, ctx, check=check))
     game_json['settings'].update(await game_players(bot, ctx, check=check))
-    game_json['settings'].update(await game_settings(bot, ctx))
+    game_json['settings'].update(await game_settings(bot, ctx, check=check))
     game_json = await link_phase(bot, ctx, game_json)
 
     await start_game(bot, ctx, game_json)
@@ -83,12 +79,12 @@ async def game_players(bot, ctx, check=None):
         else:
             return {'limit_players': None}
 
-async def game_settings(bot, ctx):
+async def game_settings(bot, ctx, check=None):
     await ctx.send(f'Send me the voice channel where do you want the game happens.')
-    channel = await bot.wait_for("message")
+    channel = await bot.wait_for("message", check=check)
 
     await ctx.send('Last question, how long should I wait to start the game from now? (In minutes, max. 1 hour)')
-    duration = await bot.wait_for("message")
+    duration = await bot.wait_for("message", check=check)
     await clear_last_msg(ctx, n_msgs=4)
     return {'voice_channel_id': re.sub(r'\D', '', channel.content), 'start_duration': int(re.sub(r'\D', '', duration.content))}
 
@@ -102,18 +98,16 @@ async def link_phase(bot, ctx, game_json):
     )
 
     endTime = datetime.now() + timedelta(minutes=game_json['settings']['start_duration'])
+    limit_players = game_json['settings']['limit_players']
 
-    while True:
-        limit_players = game_json['settings']['limit_players']
-        reach_time_limit = datetime.now() > endTime
-        reach_player_limit = limit_players and (len(game_json['players'].keys()) >= limit_players)
-        if reach_time_limit:
-            game_json['settings']['limit_players'] = len(game_json['players'].keys())
-            break
-        elif reach_player_limit:
-            break
+    def check_msg(msg):
+        return not msg.author.bot and msg.author.name not in game_json['players'].keys() and msg.channel == ctx.channel
 
-        msg = await bot.wait_for("message", check=lambda msg: msg.author not in game_json['players'].keys() and msg.channel == ctx.channel)
+    async def listen_links(msg):
+        if not check_msg(msg):
+            return
+
+        await msg.edit(suppress=True)
         valid, error = await valid_yt_link(msg.content)
 
         if valid:
@@ -124,7 +118,21 @@ async def link_phase(bot, ctx, game_json):
         else:
             await ctx.send(error)
 
-    await ctx.send('Link Phase Finished! Starting game in few seconds...')
+    bot.add_listener(listen_links, 'on_message')
+
+    while True:
+        reach_time_limit = datetime.now() > endTime
+        reach_player_limit = limit_players and (len(game_json['players'].keys()) >= limit_players)
+        if reach_time_limit:
+            game_json['settings']['limit_players'] = len(game_json['players'].keys())
+            break
+        elif reach_player_limit:
+            break
+
+        await asyncio.sleep(2)
+
+    bot.remove_listener(listen_links, 'on_message')
+    await ctx.send(f"Link Phase Finished! Starting game in few seconds...\n**{'#'*50}**")
 
     return game_json
 
@@ -154,7 +162,8 @@ async def print_tournament(ctx, brackets, round_number):
 async def run_current_bracket(bot, ctx, voice, brackets, game_json):
     react = ["🇦","🇧"]
     future_bracket = []
-    select_timeout = 40
+    select_timeout = 30
+
     for bracket in brackets:
         react_index = 0
 
@@ -178,6 +187,11 @@ async def run_current_bracket(bot, ctx, voice, brackets, game_json):
         await asyncio.sleep(select_timeout)
 
         msg = await ctx.channel.fetch_message(response.id)
+
+        for reaction in msg.reactions:
+            async for user in reaction.users():
+                if user.id not in game_json['player_ids'].values():
+                    await reaction.remove(user)
 
         choice_a = next((reaction.count-1 for reaction in msg.reactions if reaction.emoji == react[0]), 0)
         choice_b = next((reaction.count-1 for reaction in msg.reactions if reaction.emoji == react[1]), 0)
@@ -240,45 +254,6 @@ async def play(bot, voice, url, game_json):
             pass
 
         await asyncio.sleep(1)
-
-async def print_current_match(ctx, bracket):
-    await ctx.send(f'Match => {bracket[0][0]} VS {bracket[1][0]}')
-
-    img1 = get_thumbnail(bracket[0][1])
-    img2 = get_thumbnail(bracket[1][1])
-    img_merged = cv2.hconcat([img1, img2])
-
-    text = 'VS'
-    font = cv2.FONT_HERSHEY_SIMPLEX
-    font_size = 1.5
-    font_stroke = 3
-
-    text_width, text_height = cv2.getTextSize(text, font, font_size, font_stroke+2)[0]
-    position = ((int) (img_merged.shape[1]/2 - text_width/2), (int) (img_merged.shape[0]/2 + text_height/2))
-    cv2.putText(img_merged,text,position,font,font_size,(0,0,0),font_stroke+2)
-    cv2.putText(img_merged,text,position,font,font_size,(195,136,59),font_stroke)
-
-    font_size = 1
-
-    cv2.rectangle(img_merged, (0, img_merged.shape[0]-50), (50, img_merged.shape[0]), (195,136,59), -1)
-    cv2.putText(img_merged,'A',(15, img_merged.shape[0]-15),font,font_size,(255, 255, 255),font_stroke)
-
-    cv2.rectangle(img_merged, (img_merged.shape[1]-50, img_merged.shape[0]-50), (img_merged.shape[1], img_merged.shape[0]), (195,136,59), -1)
-    cv2.putText(img_merged,'B',(img_merged.shape[1]-35, img_merged.shape[0]-15),font,font_size,(255, 255, 255),font_stroke)
-
-    # JPEG quality, 0 - 100
-    jpeg_quality = 95
-    _, final_img = cv2.imencode('.jpeg', img_merged, [cv2.IMWRITE_JPEG_QUALITY, jpeg_quality])
-    await ctx.send(file=discord.File(io.BytesIO(final_img), 'imgvsimg.jpg'))
-
-def get_thumbnail(url, readFlag=cv2.IMREAD_COLOR):
-    resp = requests.get(f'http://img.youtube.com/vi/{extract_video_id_by_url(url)}/0.jpg')
-    image = np.asarray(bytearray(resp.content), dtype=np.uint8)
-    image = cv2.imdecode(image, readFlag)
-    return image
-
-async def clear_last_msg(ctx, n_msgs=1):
-    await ctx.channel.purge(limit=n_msgs, check=lambda msg: not msg.pinned)
 
 async def setup(bot):
     bot.add_command(start_royal)
